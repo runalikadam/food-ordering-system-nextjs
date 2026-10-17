@@ -7,7 +7,7 @@ import CustomerHeader from '../_components/CustomerHeader'
 import { DELIVERY_CHARGES, Tax } from '@/lib/constant'
 import { useRouter } from 'next/navigation'
 
-const UrlData = process.env.NEXT_PUBLIC_API_URL
+const UrlData = "/api";
 
 const Page = () => {
     const router = useRouter()
