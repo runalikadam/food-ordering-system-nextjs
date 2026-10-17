@@ -34,7 +34,7 @@ export async function POST(req) {
     let result;
     let success = false;
     if (payload.login) {
-        result = await restaurantSchema.findOne({ emailId: payload.emailId, password: payload.password })
+        result = await restaurantSchema.findOne({ emailId: payload.emailId, password: payload.password})
         if (result) {
             success = true
         }
