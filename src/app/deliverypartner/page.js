@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import DeliveryHeader from '../_components/DeliveryHeader'
 import { useRouter } from 'next/navigation'
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
+const UrlData = "/api";
 
 const page = () => {
     const router = useRouter();

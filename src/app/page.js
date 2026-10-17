@@ -4,7 +4,7 @@ import CustomerHeader from './_components/CustomerHeader'
 import RestaurantFooter from './_components/RestaurantFooter'
 import styles from './page.module.css'
 import { useState, useEffect } from "react";
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
+const UrlData = "/api";
 
 export default function Home() {
   const router = useRouter()

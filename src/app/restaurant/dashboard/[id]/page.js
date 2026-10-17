@@ -1,7 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation';
 import { useState, use, useEffect } from 'react'
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
+const UrlData = "/api";
 
 const EditFoodItem = (props) => {
     const router = useRouter()

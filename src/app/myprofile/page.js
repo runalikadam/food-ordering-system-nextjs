@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import CustomerHeader from '../_components/CustomerHeader'
 import RestaurantFooter from '../_components/RestaurantFooter'
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
+const UrlData = "/api";
 
 const page = () => {
     const [myOrders, setMyOrders] = useState([])

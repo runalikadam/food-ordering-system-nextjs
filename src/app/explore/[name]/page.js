@@ -3,7 +3,7 @@
 import CustomerHeader from '@/app/_components/CustomerHeader';
 import RestaurantFooter from '@/app/_components/RestaurantFooter';
 import { use, useEffect, useState } from 'react';
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
+const UrlData = "/api";
 
 const Page = (props) => {
     const { name } = use(props.params);
