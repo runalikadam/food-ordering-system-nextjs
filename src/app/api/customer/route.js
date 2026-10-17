@@ -3,6 +3,12 @@ import { restaurantSchema } from "@/lib/restaurantsModel";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 
+
+mongoose
+    .connect(connectionSrt)
+    .then(() => console.log("MongoDB connected", "hello"))
+    .catch((error) => console.error("MongoDB error:", error));
+
 export async function GET(req) {
     let success = false
     await mongoose.connect(connectionSrt, { useNewUrlParser: true })
