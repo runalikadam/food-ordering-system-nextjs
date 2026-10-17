@@ -1,73 +1,171 @@
+
 "use client"
+
 import { useState, useEffect } from 'react'
 import RestaurantFooter from '../_components/RestaurantFooter'
 import CustomerHeader from '../_components/CustomerHeader'
 import { DELIVERY_CHARGES, Tax } from '@/lib/constant'
 import { useRouter } from 'next/navigation'
-const UrlData = process.env.NEXT_PUBLIC_API_URL;
 
-const page = () => {
-    const router = useRouter();
-    const [userStorage, setUserStorage] = useState(JSON.parse(localStorage.getItem('user')))
-    const [cartStorage, setCartStorage] = useState(JSON.parse(localStorage.getItem('cart')))
-    const [total] = useState(() => cartStorage?.length == 1 ? cartStorage[0].price : cartStorage?.reduce((a, b) => {
-        return a.price + b.price
-    }))
-    console.log(total)
+const UrlData = process.env.NEXT_PUBLIC_API_URL
+
+const Page = () => {
+    const router = useRouter()
+
+    const [userStorage, setUserStorage] = useState(null)
+    const [cartStorage, setCartStorage] = useState([])
+    const [total, setTotal] = useState(0)
     const [removeCartData, setRemoveCartData] = useState(false)
+    const [isLoaded, setIsLoaded] = useState(false)
+    const [isPlacingOrder, setIsPlacingOrder] = useState(false)
 
+    // Load user and cart data only in the browser
     useEffect(() => {
-        if (!total) {
-            router.push("/")
-        }
-    }, [])
+        try {
+            const userData = JSON.parse(
+                localStorage.getItem('user') || 'null'
+            )
 
+            const cartData = JSON.parse(
+                localStorage.getItem('cart') || '[]'
+            )
+
+            setUserStorage(userData)
+            setCartStorage(Array.isArray(cartData) ? cartData : [])
+
+            const foodTotal = Array.isArray(cartData)
+                ? cartData.reduce(
+                    (sum, item) => sum + Number(item.price || 0),
+                    0
+                )
+                : 0
+
+            setTotal(foodTotal)
+
+            if (!userData || !Array.isArray(cartData) || cartData.length === 0) {
+                router.replace('/')
+                return
+            }
+        } catch (error) {
+            console.error('Error loading user or cart data:', error)
+            router.replace('/')
+        } finally {
+            setIsLoaded(true)
+        }
+    }, [router])
 
     const OrderNow = async () => {
-        let user_Id = JSON.parse(localStorage.getItem('user'))._id;
-        let city = JSON.parse(localStorage.getItem('user')).city;
-        let cart = JSON.parse(localStorage.getItem('cart'));
-        // let foodItemIds = cart.map((item) => item._id.toString())
-        let foodItemIds = cart.map((item) => item._id.toString()).join(",");
-        let resto_id = cart[0].resto_id;
-        let deliveryBoyResponse = await fetch(`${UrlData}/deliverypartners/${city}`)
-        deliveryBoyResponse = await deliveryBoyResponse.json();
-        console.log(deliveryBoyResponse)
-        const deliveryBoyIds = deliveryBoyResponse.result.map((item) => item._id)
-        console.log(deliveryBoyIds);
-        const deliveryBoy_id = deliveryBoyIds[Math.floor(Math.random() * deliveryBoyIds.length)]
-        console.log(deliveryBoy_id)
-        if (!deliveryBoy_id) {
-            alert("delivery partner not available")
-            return false;
-        }
+        if (isPlacingOrder) return
 
-        // let deliveryBoy_id = "6acc7154477bdfa015b7ce2a";
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null')
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]')
 
+            if (!user?._id || !user?.city || !Array.isArray(cart) || cart.length === 0) {
+                alert('User details or cart data is missing. Please try again.')
+                router.push('/')
+                return
+            }
 
-        let collection = {
-            user_Id, resto_id, foodItemIds, deliveryBoy_id, status: "confirm", amount: total + DELIVERY_CHARGES + (total * Tax / 100)
-        }
-        console.log(collection)
-        let response = await fetch(UrlData+"/order", {
-            method: "POST",
-            body: JSON.stringify(collection),
-            headers: {
-                "Content-Type": "application/json"
-            },
-        })
-        response = await response.json();
-        console.log(response)
-        if (response.success) {
-            alert("placed order successfully")
+            if (!UrlData) {
+                alert('API URL is not configured.')
+                return
+            }
+
+            setIsPlacingOrder(true)
+
+            const user_Id = user._id
+            const city = user.city
+            const foodItemIds = cart
+                .map((item) => item._id?.toString())
+                .filter(Boolean)
+                .join(',')
+
+            const resto_id = cart[0]?.resto_id
+
+            if (!foodItemIds || !resto_id) {
+                alert('Invalid cart data. Please check your cart.')
+                return
+            }
+
+            // Find available delivery partners
+            const deliveryResponse = await fetch(
+                `${UrlData}/deliverypartners/${encodeURIComponent(city)}`
+            )
+
+            if (!deliveryResponse.ok) {
+                throw new Error('Unable to fetch delivery partners.')
+            }
+
+            const deliveryBoyResponse = await deliveryResponse.json()
+            const deliveryPartners = deliveryBoyResponse.result || []
+
+            if (deliveryPartners.length === 0) {
+                alert('Delivery partner not available')
+                return
+            }
+
+            const deliveryBoy = deliveryPartners[
+                Math.floor(Math.random() * deliveryPartners.length)
+            ]
+
+            const deliveryBoy_id = deliveryBoy?._id
+
+            if (!deliveryBoy_id) {
+                alert('Delivery partner not available')
+                return
+            }
+
+            const finalAmount =
+                total + DELIVERY_CHARGES + (total * Tax / 100)
+
+            const collection = {
+                user_Id,
+                resto_id,
+                foodItemIds,
+                deliveryBoy_id,
+                status: 'confirm',
+                amount: finalAmount
+            }
+
+            const response = await fetch(`${UrlData}/order`, {
+                method: 'POST',
+                body: JSON.stringify(collection),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            const result = await response.json()
+
+            if (!response.ok || !result.success) {
+                alert('Failed to place order')
+                return
+            }
+
+            alert('Order placed successfully')
+
+            // Clear the cart after successful order placement
+            localStorage.setItem('cart', JSON.stringify([]))
+            setCartStorage([])
             setRemoveCartData(true)
-            router.push('/myprofile')
 
-        }
-        else {
-            alert("failed to ordered")
+            router.push('/myprofile')
+        } catch (error) {
+            console.error('Error placing order:', error)
+            alert('Something went wrong while placing your order. Please try again.')
+        } finally {
+            setIsPlacingOrder(false)
         }
     }
+
+    // Avoid rendering user details before browser storage is loaded
+    if (!isLoaded || !userStorage || cartStorage.length === 0) {
+        return null
+    }
+
+    const taxAmount = total * Tax / 100
+    const finalAmount = total + DELIVERY_CHARGES + taxAmount
 
     return (
         <>
@@ -77,50 +175,68 @@ const page = () => {
                 <div className="total-wrapper">
                     <div className="block-1">
                         <h2>User Details</h2>
-                        <div className='row'>
+
+                        <div className="row">
                             <span>Name:</span>
                             <span>{userStorage.name}</span>
                         </div>
-                        <div className='row'>
-                            <span>Address</span>
+
+                        <div className="row">
+                            <span>Address:</span>
                             <span>{userStorage.address}</span>
                         </div>
-                        <div className='row'>
-                            <span>Mobile No</span>
+
+                        <div className="row">
+                            <span>Mobile No:</span>
                             <span>{userStorage.mobile}</span>
                         </div>
+
                         <h2>Amount Details</h2>
-                        <div className='row'>
-                            <span>Food Charges :</span>
+
+                        <div className="row">
+                            <span>Food Charges:</span>
                             <span>{total}</span>
                         </div>
-                        <div className='row'>
-                            <span>Tax :</span>
-                            <span>{total * Tax / 100}</span>
+
+                        <div className="row">
+                            <span>Tax:</span>
+                            <span>{taxAmount}</span>
                         </div>
-                        <div className='row'>
-                            <span>Delivery Charges :</span>
+
+                        <div className="row">
+                            <span>Delivery Charges:</span>
                             <span>{DELIVERY_CHARGES}</span>
                         </div>
-                        <div className='row'>
-                            <span>Total Amount :</span>
-                            <span>{total + DELIVERY_CHARGES + (total * Tax / 100)}</span>
+
+                        <div className="row">
+                            <span>Total Amount:</span>
+                            <span>{finalAmount}</span>
                         </div>
+
                         <h2>Payment Methods</h2>
-                        <div className='row'>
-                            <span>Cash on Delivery :</span>
-                            <span>{total + DELIVERY_CHARGES + (total * Tax / 100)}</span>
+
+                        <div className="row">
+                            <span>Cash on Delivery:</span>
+                            <span>{finalAmount}</span>
                         </div>
                     </div>
+
                     <div className="block-2">
-                        <button onClick={OrderNow}>Place your Order Now</button>
+                        <button
+                            onClick={OrderNow}
+                            disabled={isPlacingOrder}
+                        >
+                            {isPlacingOrder
+                                ? 'Placing Order...'
+                                : 'Place your Order Now'}
+                        </button>
                     </div>
                 </div>
-                <RestaurantFooter />
 
+                <RestaurantFooter />
             </div>
         </>
     )
 }
 
-export default page
+export default Page
