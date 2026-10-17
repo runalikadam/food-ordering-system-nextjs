@@ -93,7 +93,7 @@ const Page = () => {
                 `${UrlData}/deliverypartners/${encodeURIComponent(city)}`
             )
 
-            if (!deliveryResponse.ok) {
+            if (!deliveryResponse.success) {
                 throw new Error('Unable to fetch delivery partners.')
             }
 
