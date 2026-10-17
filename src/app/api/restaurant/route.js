@@ -4,18 +4,29 @@ import { restaurantSchema } from "@/lib/restaurantsModel";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 
-mongoose
-    .connect(connectionSrt)
-    .then(() => console.log("MongoDB connected", "hello"))
-    .catch((error) => console.error("MongoDB error:", error));
+// mongoose
+//     .connect(connectionSrt)
+//     .then(() => console.log("MongoDB connected", "hello"))
+//     .catch((error) => console.error("MongoDB error:", error));
+
 
 export async function GET() {
-    await mongoose.connect(connectionSrt)
-    // await mongoose.connect(connectionSrt)
-    const data = await restaurantSchema.find()
-    console.log(data)
-    return NextResponse.json({ result: data })
+  try {
+    await mongoose.connect(connectionSrt);
+
+    const data = await restaurantSchema.find();
+
+    return NextResponse.json({ result: data });
+  } catch (error) {
+    console.error("Restaurant API error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to fetch restaurants" },
+      { status: 500 }
+    );
+  }
 }
+
 
 export async function POST(req) {
     await mongoose.connect(connectionSrt/* , { useNewUrlParser: true } */)

@@ -14,6 +14,7 @@ export default function Home() {
   const [restaurants, setRestaurants] = useState([])
 
   useEffect(() => {
+    defaultRestaurant()
     loadLocation()
     loadRestaurant()
   }, [])
@@ -29,8 +30,17 @@ export default function Home() {
     }
   }
 
+    const defaultRestaurant = async () => {
+    let response = await fetch(`${UrlData}/restaurant`, {
+      method: "GET"
+    })
+    response = await response.json()
+    console.log(response.result)
+  }
+
   const loadRestaurant = async (params) => {
     let url = UrlData + "/customer"
+    
     if (params?.location) {
       url = url + "?location=" + params.location
     } else if (params?.restaurant) {
